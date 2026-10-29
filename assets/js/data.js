@@ -36,8 +36,8 @@ window.PORTFOLIO_DATA = {
     
   ],
   videos: [
-    {title:"Container Chaos",description:"Conference session. Replace the video ID with the ID from your YouTube URL.",youtubeId:"VLMGRsYpQCk",event:"Foxxcon"},
-    {title:"OAuth Misconfiguration",description:"Conference session. Replace the video ID with the ID from your YouTube URL.",youtubeId:"SZeP6Jd2ANs",event:"Foxxcon"},
-    {title:"Prototype Pollution",description:"Conference session. Replace the video ID with the ID from your YouTube URL.",youtubeId:"AMQP66kCQKA",event:"Foxxcon"}
+    {title:"Container Chaos",description:"Docker and containers are everywhere, but misconfigurations can quickly turn them into serious security risks.",youtubeId:"VLMGRsYpQCk",event:"Foxxcon"},
+    {title:"OAuth Misconfiguration",description:"Developers in the room were shocked to see how tiny configuration mistakes can open the door to big-impact vulnerabilities. ",youtubeId:"SZeP6Jd2ANs",event:"Foxxcon"},
+    {title:"Prototype Pollution",description:"Ever wondered how a single vulnerability could let attackers take over your JavaScript app? Watch this explosive live demo as Redfox Security and Atharva Nanche dive into the dark world of Prototype Pollution — a critical but often misunderstood security flaw.",youtubeId:"AMQP66kCQKA",event:"Foxxcon"}
     ]
 };
