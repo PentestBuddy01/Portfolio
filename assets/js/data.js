@@ -36,6 +36,8 @@ window.PORTFOLIO_DATA = {
     
   ],
   videos: [
-    {title:"Container Chaos",description:"Conference session. Replace the video ID with the ID from your YouTube URL.",youtubeId:"VLMGRsYpQCk",event:"Foxxcon"}
+    {title:"Container Chaos",description:"Conference session. Replace the video ID with the ID from your YouTube URL.",youtubeId:"VLMGRsYpQCk",event:"Foxxcon"},
+    {title:"OAuth Misconfiguration",description:"Conference session. Replace the video ID with the ID from your YouTube URL.",youtubeId:"SZeP6Jd2ANs",event:"Foxxcon"},
+    {title:"Prototype Pollution",description:"Conference session. Replace the video ID with the ID from your YouTube URL.",youtubeId:"AMQP66kCQKA",event:"Foxxcon"}
     ]
 };
