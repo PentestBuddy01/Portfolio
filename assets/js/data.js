@@ -17,18 +17,38 @@ window.PORTFOLIO_DATA = {
     {id:"ai-llm",label:"AI / LLM Security"},
     {id:"infrastructure",label:"Infrastructure"}
   ],
+  /* IMAGES: put screenshots in assets/POC/<date>/<category>/01.png, 02.png ...
+     then write [[img:1|Caption]] inside content. Add |m for phone screenshots: [[img:5|Caption|m]] */
   posts: [
-{slug:"installing-burp-ca-system-certificate-android-11-magisk",title:"Installing Burp Suite's CA as a System Certificate on Android 11+ with Magisk",category:"mobile",date:"2026-10-31",readTime:"8 min read",excerpt:"Android 11+ makes /system effectively read-only, so the old remount-and-copy trick no longer works. Here is how to overlay Burp's CA as a system certificate using a systemless Magisk module.",featured:false,tags:["Android","Burp Suite","Magisk","Mobile Security"],content:`
+{slug:"installing-burp-ca-system-certificate-android-11-magisk",title:"Installing Burp Suite's CA as a System Certificate on Android 11+ with Magisk",category:"mobile",date:"2026-10-31",readTime:"10 min read",excerpt:"Android 11+ makes /system effectively read-only, so the old remount-and-copy trick no longer works. Here is how to overlay Burp's CA as a system certificate using a systemless Magisk module, with proof-of-concept screenshots for every step.",featured:false,tags:["Android","Burp Suite","Magisk","Mobile Security"],content:`
       <p>Intercepting HTTPS traffic from Android apps is a core part of mobile security testing. Since Android 7, apps ignore user-installed CAs unless they explicitly opt in through <code>network_security_config.xml</code>. Installing Burp's CA as a system certificate removes that restriction, but on Android 11+ it takes a different approach than it used to.</p>
       <h2>1. Why a system certificate?</h2><p>Certificates in the system store are trusted by default. Once Burp's CA is installed there, you can intercept HTTPS traffic system-wide, including from apps that reject user-installed certificates.</p>
       <h2>2. Why the old method no longer works</h2><p>On earlier Android versions, a tester with root could remount <code>/system</code> as read-write and copy the CA into <code>/system/etc/security/cacerts/</code>. Newer versions use system-as-root, dynamic partitions, and Android Verified Boot 2.0, so <code>/system</code> is strictly read-only and integrity-checked, even on many rooted devices. Remounting it is difficult or impossible without advanced methods such as Magisk modules or modified boot images.</p>
       <div class="callout">Perform testing only on devices and applications you own or are explicitly authorized to assess. This technique requires a rooted test device, so do not use your personal daily-driver phone.</div>
-      <h2>3. Export Burp's CA certificate (DER)</h2><p>In Burp Suite, go to <strong>Proxy &gt; Proxy settings</strong> and click <strong>Import / export CA certificate</strong>. Choose <strong>Certificate in DER format</strong>, click <strong>Next</strong>, select a save location, name the file <code>Burp.der</code>, then finish the export wizard. You can also download the certificate from <code>http://burpsuite/cert</code> in a browser that is proxied through Burp.</p>
-      <h2>4. Convert DER to PEM and name it by hash</h2><p>Copy <code>Burp.der</code> to a Linux machine (Kali in this example) and run the following from that folder:</p>
+      <h2>3. Export Burp's CA certificate (DER)</h2><p>In Burp Suite, go to <strong>Proxy &gt; Proxy settings</strong>.</p>
+      [[img:1|Proxy > Proxy settings in Burp Suite]]
+      <p>Click <strong>Import / export CA certificate</strong>.</p>
+      [[img:2|Import / export CA certificate]]
+      <p>Choose <strong>Certificate in DER format</strong> and click <strong>Next</strong>.</p>
+      [[img:3|Select Certificate in DER format]]
+      <p>Click <strong>Select file</strong>, choose where to save the certificate, and name it <code>Burp.der</code>.</p>
+      [[img:4|Choose the export location]]
+      [[img:5|Save the file as Burp.der]]
+      <p>Confirm the path is set, click <strong>Next</strong>, and wait for the success message.</p>
+      [[img:6|Export path set]]
+      [[img:7|Export completed]]
+      <p>The exported <code>Burp.der</code> file now sits in the folder you chose. You can also download the certificate from <code>http://burpsuite/cert</code> in a browser that is proxied through Burp.</p>
+      [[img:8|Exported Burp.der]]
+      <h2>4. Convert DER to PEM and name it by hash</h2><p>Copy <code>Burp.der</code> to a Linux machine (Kali in this example).</p>
+      [[img:9|Burp.der copied to Kali]]
+      <p>Open a terminal in that folder and run:</p>
       <pre><code>openssl x509 -inform DER -in Burp.der -out Burp.pem
 openssl x509 -inform PEM -subject_hash_old -in Burp.pem | head -1
 cp Burp.pem 9a5ba575.0</code></pre>
       <p>The second command prints the subject hash (<code>9a5ba575</code> in this example). Android looks up system CAs by <code>&lt;hash&gt;.0</code> filenames, so the copied file must use the hash your own certificate returns.</p>
+      [[img:10|DER to PEM conversion and subject hash]]
+      <p>You should now have three files: <code>Burp.der</code>, <code>Burp.pem</code>, and the hash-named <code>9a5ba575.0</code>.</p>
+      [[img:11|Generated certificate files]]
       <h2>5. Build the Magisk module</h2><p>Create a folder (for example <code>CustomCert</code>) with the following structure:</p>
       <pre><code>CustomCert/
 ├── module.prop
@@ -41,12 +61,29 @@ version=1.0
 versionCode=1
 author=You
 description=Installs custom certificate into system cacerts</code></pre>
+      [[img:12|module.prop]]
       <p><strong>post-fs-data.sh</strong> tells Android which interpreter runs the script. <code>#!</code> marks an interpreter directive and <code>/system/bin/sh</code> is Android's default shell.</p>
       <pre><code>#!/system/bin/sh</code></pre>
-      <p><strong>system/etc/security/cacerts/9a5ba575.0</strong> is the certificate itself. The path mirrors Android's system CA store at <code>/system/etc/security/cacerts/</code>, and Magisk overlays it at boot. Finally, select the three items (<code>module.prop</code>, <code>post-fs-data.sh</code>, and the <code>system</code> folder) and compress them into <code>CustomCert.zip</code>. Zip the contents, not the parent folder, so the files sit at the root of the archive.</p>
-      <h2>6. Load the module in Magisk</h2><p>Transfer <code>CustomCert.zip</code> to the device (Android 11+), then:</p>
-      <p>1. Open the <strong>Magisk</strong> app.<br>2. Go to the <strong>Modules</strong> tab.<br>3. Tap <strong>Install from storage</strong>, select <code>CustomCert.zip</code>, and confirm with <strong>OK</strong>.<br>4. Once the log shows the installation finished successfully, tap <strong>Reboot</strong>.</p>
+      [[img:13|post-fs-data.sh]]
+      <p><strong>system/etc/security/cacerts/9a5ba575.0</strong> is the certificate itself. The path mirrors Android's system CA store at <code>/system/etc/security/cacerts/</code>, and Magisk overlays it at boot.</p>
+      [[img:14|Certificate inside the module's system path]]
+      <p>This is the final module layout:</p>
+      [[img:15|Module folder contents]]
+      <p>Select the three items (<code>module.prop</code>, <code>post-fs-data.sh</code>, and the <code>system</code> folder) and compress them into <code>CustomCert.zip</code>. Zip the contents, not the parent folder, so the files sit at the root of the archive.</p>
+      [[img:16|Compress the three items to ZIP]]
+      [[img:17|CustomCert.zip created]]
+      <h2>6. Load the module in Magisk</h2><p>Transfer <code>CustomCert.zip</code> to the device (Android 11+).</p>
+      [[img:18|Module transferred to the device]]
+      <p>Open the <strong>Magisk</strong> app.</p>
+      [[img:19|Open the Magisk app|m]]
+      <p>Go to the <strong>Modules</strong> tab.</p>
+      [[img:20|Modules tab|m]]
+      <p>Tap <strong>Install from storage</strong>, select <code>CustomCert.zip</code>, and confirm with <strong>OK</strong>.</p>
+      [[img:21|Install from storage|m]]
+      <p>Once the log shows the installation finished successfully, tap <strong>Reboot</strong>.</p>
+      [[img:22|Module installed, tap Reboot|m]]
       <h2>7. Verify the installation</h2><p>After the reboot, open <strong>Settings</strong> and search for <strong>Trusted certificates</strong>. Under the <strong>System</strong> tab, scroll to <strong>PortSwigger CA</strong>. If it is listed and enabled, the Burp CA is now trusted as a system certificate.</p>
+      [[img:23|PortSwigger CA listed as a system certificate|m]]
       <h2>Important: this is not a one-time setup</h2><p>If the Burp CA changes (for example, you regenerate the certificate or use a different Burp installation), the subject hash changes too. Because Android relies on the hash-based filename, you must re-export the certificate, regenerate the hash, rebuild the module, and reinstall it each time.</p>
       <h2>Closing thought</h2><p>Magisk's systemless approach overlays the Burp CA at boot without modifying the actual system partition. The certificate is trusted as a system CA while system integrity and boot verification stay intact, which makes full HTTPS interception practical on modern Android.</p>`}
   ],
