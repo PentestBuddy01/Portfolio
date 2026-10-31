@@ -28,7 +28,7 @@ window.PORTFOLIO_DATA = {
       <h2>Closing thought</h2><p>The best checklist adapts to the application's business model. Use it to guide reasoning, not replace it.</p>`}
   ],
   projects: [
-    {slug:"mobile-security-lab",title:"Mobile Application Security Lab",status:"Learning lab",summary:"A controlled Android and iOS setup for instrumentation, traffic analysis, and mobile application testing.",description:"A personal lab for understanding runtime behavior, app storage, transport security, jailbreak/root detection, and client-server trust boundaries.",stack:["Android","iOS","Frida","Mobile"],github:"",featured:true}
+    {slug:"android-pentesting-toolkit",title:"Android Pentesting",status:"Tools & Testcases",summary:"My Android Pentesting Toolkit",description:"Android pentesting checklist to cover maximum testcases",stack:["Android","Mobile","DAST","SAST"],github:"https://github.com/PentestBuddy01/AndroidPentest",featured:true}
   ],
   certifications: [
     {id:"ceh",name:"Certified Ethical Hacker (CEH)",issuer:"EC-Council",year:"2025",certificate:"assets/certificates/ceh.pdf",summary:"Ethical hacking and security assessment certification."},
