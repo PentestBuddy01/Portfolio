@@ -1372,4 +1372,12 @@ a {
     font-size: 8px;
     letter-spacing: 0.035em;
   }
+
+  /* POC IMAGES (append to the end of assets/css/styles.css) */
+.poc{margin:26px 0;text-align:center}
+.poc a{display:inline-block;max-width:100%}
+.poc img{margin:0 auto;border:1px solid var(--line);border-radius:10px;background:#060a08;cursor:zoom-in}
+.poc.poc-mobile img{max-width:320px;width:100%}
+.poc figcaption{margin-top:9px;font:11px var(--mono);letter-spacing:.04em;color:var(--muted)}
+
 }
