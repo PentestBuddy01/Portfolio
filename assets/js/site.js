@@ -34,6 +34,12 @@
 
   const postCard = p => `<a class="article-card" href="${BASE}/blog/article.html?slug=${encodeURIComponent(p.slug)}"><div class="article-meta"><span>${esc(categoryLabel(p.category))}</span><span>${esc(p.readTime||"")}</span></div><h3>${esc(p.title)}</h3><p>${esc(p.excerpt)}</p><div class="article-meta"><span>${esc(p.date||"Draft")}</span><span class="accent">Read article ↗</span></div></a>`;
 
+    // POC images: [[img:3|Caption]] or [[img:19|Caption|m]] -> assets/POC/<date>/<category>/03.png
+  const expandPoc = post => (post.content || "").replace(/\[\[img:(\d+)(?:\|([^|\]]*))?(?:\|(m))?\]\]/g, (_, n, cap = "", m) => {
+    const src = `${BASE}/assets/POC/${post.date}/${post.category}/${String(n).padStart(2, "0")}.png`;
+    return `<figure class="poc${m ? " poc-mobile" : ""}"><a href="${src}" target="_blank" rel="noopener"><img src="${src}" alt="${esc(cap)}" loading="lazy"></a>${cap ? `<figcaption>${esc(cap)}</figcaption>` : ""}</figure>`;
+  });
+  
   function renderHome(){
     if($("#featured-projects")) $("#featured-projects").innerHTML=(data.projects||[]).filter(p=>p.featured).slice(0,3).map(projectCard).join("");
     if($("#latest-posts")) $("#latest-posts").innerHTML=(data.posts||[]).slice().sort((a,b)=>(b.date||"").localeCompare(a.date||"")).slice(0,3).map(postCard).join("");
@@ -52,7 +58,7 @@
     const slug=new URLSearchParams(location.search).get("slug");const post=(data.posts||[]).find(p=>p.slug===slug);const root=$("#article-root");if(!root)return;
     if(!post){root.innerHTML=`<div class="container content-section"><div class="empty-state">Article not found. <a class="accent" href="index.html">Return to the blog</a>.</div></div>`;return;}
     document.title=`${post.title} | Atharva Nanche`;
-    root.innerHTML=`<div class="container"><div class="article-title"><a class="back-link" href="index.html">← ALL ARTICLES</a><p class="eyebrow" style="margin-top:25px">${esc(categoryLabel(post.category))} / FIELD NOTES</p><h1>${esc(post.title)}</h1><p class="dek">${esc(post.excerpt)}</p><div class="article-meta"><span>${esc(post.date||"Draft")} · ${esc(post.readTime||"")}</span><span>ATHARVA NANCHE</span></div>${tagList(post.tags)}</div><div class="article-body">${post.content||"<p>Article content coming soon.</p>"}<div class="callout"><strong>Authorized testing only.</strong> Examples and techniques should be used only on systems you own or have explicit permission to assess.</div><p><a class="text-link" href="index.html">← Back to all articles</a></p></div></div>`;
+    root.innerHTML=`<div class="container"><div class="article-title"><a class="back-link" href="index.html">← ALL ARTICLES</a><p class="eyebrow" style="margin-top:25px">${esc(categoryLabel(post.category))} / FIELD NOTES</p><h1>${esc(post.title)}</h1><p class="dek">${esc(post.excerpt)}</p><div class="article-meta"><span>${esc(post.date||"Draft")} · ${esc(post.readTime||"")}</span><span>ATHARVA NANCHE</span></div>${tagList(post.tags)}</div><div class="article-body">${expandPoc(post)||"<p>Article content coming soon.</p>"}<div class="callout"><strong>Authorized testing only.</strong> Examples and techniques should be used only on systems you own or have explicit permission to assess.</div><p><a class="text-link" href="index.html">← Back to all articles</a></p></div></div>`;
   }
 
   function renderProjects(){
