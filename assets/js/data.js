@@ -17,9 +17,67 @@ window.PORTFOLIO_DATA = {
     {id:"ai-llm",label:"AI / LLM Security"},
     {id:"infrastructure",label:"Infrastructure"}
   ],
-  /* IMAGES: put screenshots in assets/POC/<date>/<category>/01.png, 02.png ...
+ /* IMAGES: put screenshots in assets/POC/<date>/<category>/01.png, 02.png ...
      then write [[img:1|Caption]] inside content. Add |m for phone screenshots: [[img:5|Caption|m]] */
   posts: [
+{slug:"installing-burp-suite-ca-system-certificate-android",title:"Installing Burp Suite's CA as a System Certificate on Android",category:"mobile",date:"2026-11-03",readTime:"5 min read",excerpt:"Learn how to export Burp Suite's CA certificate, convert it to the hashed PEM format Android expects, and install it as a system certificate on a rooted device or emulator so even apps that reject user-installed CAs can be intercepted.",featured:false,tags:["Android","Burp Suite","HTTPS Interception","System CA","Mobile Pentesting"],content:`
+<p>Want to intercept all HTTPS traffic from Android apps, even those that block user-installed certificates? This guide walks through installing Burp Suite's CA certificate as a system certificate on a rooted Android device or emulator. That gives you full traffic visibility and lets you test even the most locked-down apps.</p>
+
+<div class="callout">Perform testing only against systems you own or are explicitly authorized to assess. Modifying the system certificate store of a device is intended for your own test devices and emulators.</div>
+
+<h2>1. Why a system certificate?</h2>
+<p>Installing the Burp CA as a system certificate has two main benefits:</p>
+<ul>
+<li><strong>Intercept all HTTPS traffic, system-wide:</strong> even apps that reject user-installed certificates will trust a system-installed Burp CA, allowing full interception.</li>
+<li><strong>Bypass network_security_config.xml restrictions:</strong> Android 7.0+ requires apps to explicitly allow user CAs, whereas system certificates are trusted by default.</li>
+</ul>
+
+<h2>2. Exporting the Burp Suite certificate (DER format)</h2>
+<p>In Burp Suite, navigate to <strong>Proxy</strong> &gt; <strong>Proxy settings</strong>.</p>
+[[img:1|Burp Suite: Proxy > Proxy settings]]
+<p>Select the <strong>Import / export CA certificate</strong> button.</p>
+[[img:2|Import / export CA certificate button]]
+<p>Choose <strong>Certificate in DER format</strong>, then click <strong>Next</strong>.</p>
+[[img:3|Export option: Certificate in DER format]]
+<p>Click <strong>Select file</strong>, choose the location where you want to save the certificate, and name the file <code>Burp.der</code>.</p>
+[[img:4|Select file button]]
+[[img:5|Saving the certificate as Burp.der]]
+[[img:6|Export path showing Burp.der]]
+<p>Click <strong>Next</strong> to complete the export process.</p>
+[[img:7|Certificate successfully exported]]
+<p>Finally, navigate to the location where you saved the <code>Burp.der</code> file.</p>
+[[img:8|Burp.der saved on the desktop]]
+
+<h2>3. Converting DER to PEM format</h2>
+<p>Copy the <code>Burp.der</code> file to your Kali Linux machine.</p>
+[[img:9|Burp.der copied to Kali Linux]]
+<p>Open a terminal, navigate to the folder where you pasted <code>Burp.der</code>, and run the following commands. The second command prints the subject hash (here <code>9a5ba575</code>), which is used as the filename Android expects, with a <code>.0</code> suffix.</p>
+<pre><code>openssl x509 -inform DER -in Burp.der -out Burp.pem
+openssl x509 -inform PEM -subject_hash_old -in Burp.pem | head -1
+cp Burp.pem 9a5ba575.0</code></pre>
+[[img:10|Converting the certificate and generating the hash]]
+<p>The folder now contains <code>9a5ba575.0</code> alongside <code>Burp.der</code> and <code>Burp.pem</code>.</p>
+[[img:11|Resulting files: 9a5ba575.0, Burp.der, Burp.pem]]
+
+<h2>4. Pushing 9a5ba575.0 to the device or emulator</h2>
+<p>Connect to your emulator. In this walkthrough I am using the Nox emulator.</p>
+[[img:12|Nox emulator running]]
+<p>Open a command prompt and run the following commands:</p>
+<pre><code>adb devices
+adb push 9a5ba575.0 /data/local/tmp
+adb shell
+mount -o rw,remount / | mount -o rw,remount /system
+cp /data/local/tmp/9a5ba575.0 /system/etc/security/cacerts/
+cd /system/etc/security/cacerts/
+chmod 644 9a5ba575.0</code></pre>
+[[img:13|Pushing the certificate and setting permissions with adb]]
+
+<h2>5. Verifying the installation</h2>
+<p>Open the Nox emulator and go to <strong>Settings</strong> &gt; <strong>Encryption &amp; Credentials</strong> &gt; <strong>Trusted Credential</strong> &gt; <strong>SYSTEM</strong>. The Burp CA should now be listed among the system certificates.</p>
+[[img:14|Burp CA listed under SYSTEM trusted credentials|m]]
+
+<h2>Closing thought</h2>
+<p>With the Burp CA installed in the system store, apps that ignore user-installed certificates will now trust your proxy, giving you visibility into traffic that would otherwise stay hidden during mobile application testing.</p>`},
 {slug:"installing-burp-ca-system-certificate-android-11-magisk",title:"Installing Burp Suite's CA as a System Certificate on Android 11+ with Magisk",category:"mobile",date:"2026-10-31",readTime:"10 min read",excerpt:"Android 11+ makes /system effectively read-only, so the old remount-and-copy trick no longer works. Here is how to overlay Burp's CA as a system certificate using a systemless Magisk module, with proof-of-concept screenshots for every step.",featured:false,tags:["Android","Burp Suite","Magisk","Mobile Security"],content:`
       <p>Intercepting HTTPS traffic from Android apps is a core part of mobile security testing. Since Android 7, apps ignore user-installed CAs unless they explicitly opt in through <code>network_security_config.xml</code>. Installing Burp's CA as a system certificate removes that restriction, but on Android 11+ it takes a different approach than it used to.</p>
       <h2>1. Why a system certificate?</h2><p>Certificates in the system store are trusted by default. Once Burp's CA is installed there, you can intercept HTTPS traffic system-wide, including from apps that reject user-installed certificates.</p>
