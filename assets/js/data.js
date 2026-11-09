@@ -20,6 +20,60 @@ window.PORTFOLIO_DATA = {
  /* IMAGES: put screenshots in assets/POC/<date>/<category>/01.png, 02.png ...
      then write [[img:1|Caption]] inside content. Add |m for phone screenshots: [[img:5|Caption|m]] */
   posts: [
+{slug:"escalating-to-domain-admin-via-esc1-in-ad-cs",title:"Escalating to Domain Admin via ESC1 in Active Directory Certificate Services",category:"infrastructure",date:"2026-11-09",readTime:"4 min read",excerpt:"A walkthrough of an ESC1 misconfiguration in Active Directory Certificate Services that let a low-privileged domain user request a certificate for the Administrator account and fully compromise the domain.",featured:false,tags:["Active Directory","AD CS","Privilege Escalation","Certipy","ESC1"],content:`
+<p>Active Directory Certificate Services (AD CS) is a common source of privilege escalation paths, and one of the most reliable is ESC1: a certificate template that lets the requester supply their own Subject Alternative Name. When combined with weak enrollment permissions, this allows any domain user to request a certificate that authenticates as someone else entirely &mdash; including a Domain Admin.</p>
+<div class="callout">Perform testing only against systems you own or are explicitly authorized to assess. The steps below were carried out against an authorized test environment.</div>
+<h2>1. The scenario: VPN access for personal devices</h2>
+<p>The issue surfaced out of a routine business need. Remote workers wanted to connect to the company VPN from personal laptops, but IT couldn't install company certificates on devices it didn't manage. The compromise was a certificate template, <code>Certificate1</code>, that let users request their own certificates for personal devices by typing in their username at enrollment time &mdash; a setting known as "Supply in request."</p>
+<h2>2. What is ESC1?</h2>
+<p>ESC1 exploits certificate templates that allow attackers to specify arbitrary Subject Alternative Names (SANs). With "Supply in request" enabled, the vulnerability requires four conditions to line up on a template:</p>
+<ol>
+<li>The <code>CT_FLAG_ENROLLEE_SUPPLIES_SUBJECT</code> flag is enabled</li>
+<li>The template includes the Client Authentication EKU (Extended Key Usage)</li>
+<li>Domain Users (or Authenticated Users) have enrollment permissions</li>
+<li>No manager approval is required before a certificate is issued</li>
+</ol>
+<p>Put together, any authenticated low-privileged user can request a certificate that claims to belong to a Domain Admin.</p>
+<h2>3. Finding vulnerable certificate templates</h2>
+<p>The first step is enumeration. Certipy's <code>find</code> module flags templates matching the ESC1 pattern directly:</p>
+<pre><code>certipy-ad find -u Pentest@insecurenova.com -p 'P3nt3st@12345' -vulnerable -enable -stdout -dc-ip 10.0.1.10</code></pre>
+[[img:1|Certipy find output listing the CA and discovered vulnerability]]
+[[img:2|Certipy flags ESC1 on the Certificate1 template]]
+<h2>4. Confirming the vulnerable settings</h2>
+<p>The Certipy output confirms every piece needed for ESC1, matching it against the certificate authority and template configuration.</p>
+<p>The certificate authority issuing certificates is INSECURENOVA-CA:</p>
+[[img:3|Certificate authority details for INSECURENOVA-CA]]
+<p>The vulnerable template is named Certificate1:</p>
+[[img:4|Template name: Certificate1]]
+<p>The template is enabled for issuance:</p>
+[[img:5|Certificate1 shown as an enabled template]]
+<p>Its Extended Key Usage includes Client Authentication:</p>
+[[img:6|Extended Key Usage set to Client Authentication]]
+<p>"Enrollee Supplies Subject" is set to true, meaning any Domain or Authenticated User can request a certificate for a high-privilege account such as a Domain Admin:</p>
+[[img:7|Enrollee Supplies Subject set to true]]
+<p>And enrollment rights extend to Domain Users:</p>
+[[img:8|Enrollment rights granted to Domain Users and Authenticated Users]]
+<h2>5. Requesting a certificate as Domain Admin</h2>
+<p>With the vulnerable template confirmed, the next step is to resolve the SID of the target account to impersonate &mdash; in this case, the built-in Administrator. <code>rpcclient</code> handles the lookup:</p>
+<pre><code>rpcclient -U 'insecurenova.com/Pentest%P3nt3st@12345' 10.0.1.10 -c "lookupnames administrator"</code></pre>
+[[img:9|rpcclient resolving the SID for the Administrator account]]
+<p>With the SID in hand, Certipy requests a certificate for the Administrator account using the vulnerable template:</p>
+<pre><code>certipy-ad req -u Pentest@insecurenova.com -p 'P3nt3st@12345' -ca INSECURENOVA-CA -template Certificate1 -upn administrator@insecurenova.com -dc-ip 10.0.1.10 -target 10.0.1.20 -sid &lt;administrator-sid&gt;</code></pre>
+[[img:10|Certipy successfully requesting a certificate as Administrator]]
+<h2>6. From certificate to domain compromise</h2>
+<p>The issued certificate can be exchanged for a Kerberos TGT and the account's NT hash:</p>
+<pre><code>certipy-ad auth -pfx administrator.pfx -username administrator -domain insecurenova.com -dc-ip 10.0.1.10</code></pre>
+[[img:11|Certipy authenticating with the certificate to retrieve a TGT and NT hash]]
+<p>From there, the recovered hash authenticates directly against the domain controller, confirming full domain compromise:</p>
+<pre><code>netexec smb 10.0.0.10 -u administrator -H 'a5ac77f15557302de83dcbd3df461f5c'</code></pre>
+[[img:12|NetExec authenticating as Administrator using the recovered hash]]
+<h2>7. Prevention</h2>
+<ul>
+<li><strong>Disable "Supply in request" on the template.</strong> Uncheck the option in the Subject Name tab of the certificate template properties, and instead configure it to build the subject from Active Directory information using the User Principal Name (UPN) or Common Name (CN).</li>
+<li><strong>Enforce manager approval.</strong> If "Supply in request" is genuinely required for a specific business case, enable "CA administrator approval" on the Issuance Requirements tab so certificates aren't issued automatically.</li>
+</ul>
+<h2>Closing thought</h2>
+<p>ESC1 is a reminder that convenience-driven configuration changes &mdash; here, solving a VPN onboarding problem &mdash; can quietly open a direct path to Domain Admin. Certificate templates deserve the same scrutiny as any other high-privilege AD object, and "Supply in request" should be treated as a red flag whenever it's paired with broad enrollment rights and no approval workflow.</p>`},
 {slug:"installing-burp-suite-ca-system-certificate-android",title:"Installing Burp Suite's CA as a System Certificate on Android",category:"mobile",date:"2026-11-03",readTime:"5 min read",excerpt:"Learn how to export Burp Suite's CA certificate, convert it to the hashed PEM format Android expects, and install it as a system certificate on a rooted device or emulator so even apps that reject user-installed CAs can be intercepted.",featured:false,tags:["Android","Burp Suite","HTTPS Interception","System CA","Mobile Pentesting"],content:`
 <p>Want to intercept all HTTPS traffic from Android apps, even those that block user-installed certificates? This guide walks through installing Burp Suite's CA certificate as a system certificate on a rooted Android device or emulator. That gives you full traffic visibility and lets you test even the most locked-down apps.</p>
 
